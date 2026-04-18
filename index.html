@@ -22,7 +22,7 @@ body{background:#0a1a0a;font-family:monospace;overflow:hidden;}
 .rank-num{color:#ffdd44;font-weight:bold;width:16px;}
 .rank-you{color:#88ff44;font-weight:bold;}
 #message{position:fixed;bottom:160px;left:50%;transform:translateX(-50%);color:#ffff88;font-size:14px;text-align:center;text-shadow:0 2px 4px #000;pointer-events:none;z-index:10;width:90%;}
-#controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 16px;z-index:10;}
+#controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:none;justify-content:space-between;align-items:flex-end;padding:0 16px;z-index:10;}
 #stickWrap{width:130px;height:130px;position:relative;}
 #stickBase{width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);position:absolute;top:0;left:0;}
 #stickKnob{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 38% 38%,rgba(255,255,255,0.5),rgba(180,180,255,0.25));border:2px solid rgba(255,255,255,0.4);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
@@ -269,6 +269,7 @@ function showMsg(t) { if (game) { game.msgText = t; game.msgTimer = 130; } }
 function startGame(playerKey) {
 initAudio();
 document.getElementById(‘titleScreen’).style.display = ‘none’;
+document.getElementById(‘controls’).style.display = ‘flex’;
 var W = canvas.width, H = canvas.height;
 var pc = CHARS[playerKey];
 var PY = H * 0.6;
