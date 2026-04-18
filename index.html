@@ -68,10 +68,10 @@ body{background:#0a1a0a;font-family:monospace;overflow:hidden;}
   <h2>〜 陣馬山 855m 登頂チャレンジ 〜</h2>
   <p>キャラクターを選んでください</p>
   <div class="char-select">
-    <div class="char-card" id="card-nakamura"><div class="char-emoji">🧔</div><div class="char-name">中邑</div><div class="char-desc">おしゃべり<br>うるさい</div></div>
-    <div class="char-card" id="card-kubo"><div class="char-emoji">🙍</div><div class="char-name">窪</div><div class="char-desc">下半身強靭<br>当たり最強💪</div></div>
-    <div class="char-card" id="card-kawasaki"><div class="char-emoji">😤</div><div class="char-name">川崎</div><div class="char-desc">無口・無尽蔵<br>スタミナ化け物</div></div>
-    <div class="char-card" id="card-milno"><div class="char-emoji">🎒</div><div class="char-name">ミルノ</div><div class="char-desc">超高速<br>🚀ミサイル装備</div></div>
+    <div class="char-card" onclick="startGame('nakamura')"><div class="char-emoji">🧔</div><div class="char-name">中邑</div><div class="char-desc">おしゃべり<br>うるさい</div></div>
+    <div class="char-card" onclick="startGame('kubo')"><div class="char-emoji">🙍</div><div class="char-name">窪</div><div class="char-desc">下半身強靭<br>当たり最強💪</div></div>
+    <div class="char-card" onclick="startGame('kawasaki')"><div class="char-emoji">😤</div><div class="char-name">川崎</div><div class="char-desc">無口・無尽蔵<br>スタミナ化け物</div></div>
+    <div class="char-card" onclick="startGame('milno')"><div class="char-emoji">🎒</div><div class="char-name">ミルノ</div><div class="char-desc">超高速<br>🚀ミサイル装備</div></div>
   </div>
 </div>
 <div id="overlay">
@@ -107,25 +107,9 @@ canvas.height = window.innerHeight;
 resize();
 window.addEventListener(‘resize’, resize);
 
-// カードのタップ
-function bindCard(id, key) {
-var el = document.getElementById(id);
-el.addEventListener(‘touchstart’, function(e) {
-e.preventDefault();
-startGame(key);
-}, {passive: false});
-el.addEventListener(‘click’, function() {
-startGame(key);
-});
-}
-bindCard(‘card-nakamura’, ‘nakamura’);
-bindCard(‘card-kubo’, ‘kubo’);
-bindCard(‘card-kawasaki’, ‘kawasaki’);
-bindCard(‘card-milno’, ‘milno’);
-
-document.getElementById(‘btnRetry’).addEventListener(‘click’, function() {
-location.reload();
-});
+// リトライボタン
+var btnRetry = document.getElementById(‘btnRetry’);
+if (btnRetry) btnRetry.addEventListener(‘click’, function() { location.reload(); });
 
 // BGM
 function initAudio() {
@@ -267,6 +251,7 @@ showMsg(‘💨 ダッシュ！’); playSE(‘item’);
 function showMsg(t) { if (game) { game.msgText = t; game.msgTimer = 130; } }
 
 function startGame(playerKey) {
+try {
 initAudio();
 document.getElementById(‘titleScreen’).style.display = ‘none’;
 document.getElementById(‘controls’).style.display = ‘flex’;
@@ -322,6 +307,7 @@ finishOrder: [], frame: 0
 };
 document.getElementById(‘charName’).textContent = pc.emoji + ’ ’ + pc.name;
 updateUI(); startBGM(); requestAnimationFrame(loop);
+} catch(e) { alert(’エラー: ’ + e.message); }
 }
 
 function spawnParticles(x, y, color, count) {
