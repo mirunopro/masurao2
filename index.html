@@ -1,1 +1,827 @@
+<!DOCTYPE html>
 
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>益荒男登山隊</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a1a0a;font-family:monospace;overflow:hidden;}
+#gameCanvas{display:block;margin:0 auto;touch-action:none;}
+#ui{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;pointer-events:none;z-index:10;padding:6px 10px 0;}
+#charName{text-align:center;color:#ffdd44;font-size:14px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 8px #ffaa00;margin-bottom:3px;}
+#hpBar{background:rgba(0,0,0,0.6);border:1px solid #555;border-radius:4px;height:18px;overflow:hidden;position:relative;margin-bottom:3px;}
+#hpFill{height:100%;background:linear-gradient(90deg,#ff4444,#ff8800);}
+#hpText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold;}
+#altBar{background:rgba(0,0,0,0.6);border:1px solid #446;border-radius:4px;height:14px;overflow:hidden;position:relative;}
+#altFill{height:100%;background:linear-gradient(90deg,#2244aa,#44aaff);}
+#altText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;}
+#rankDisp{position:fixed;top:80px;right:10px;background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:6px;padding:5px 8px;z-index:10;pointer-events:none;font-size:11px;color:#fff;line-height:1.8;min-width:85px;}
+.rank-row{display:flex;align-items:center;gap:4px;}
+.rank-num{color:#ffdd44;font-weight:bold;width:16px;}
+.rank-you{color:#88ff44;font-weight:bold;}
+#message{position:fixed;bottom:160px;left:50%;transform:translateX(-50%);color:#ffff88;font-size:14px;text-align:center;text-shadow:0 2px 4px #000;pointer-events:none;z-index:10;width:90%;}
+#controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 16px;z-index:10;}
+#stickWrap{width:130px;height:130px;position:relative;}
+#stickBase{width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);position:absolute;top:0;left:0;}
+#stickKnob{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 38% 38%,rgba(255,255,255,0.5),rgba(180,180,255,0.25));border:2px solid rgba(255,255,255,0.4);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.action-btns{display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+.action-btn{width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);color:#fff;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-user-select:none;user-select:none;letter-spacing:1px;}
+#btnRest{background:rgba(80,180,80,0.3);border-color:rgba(100,255,100,0.5);}
+#btnBoost{background:rgba(200,100,40,0.3);border-color:rgba(255,150,50,0.5);}
+#titleScreen{position:fixed;inset:0;background:linear-gradient(180deg,#050f05 0%,#0a1f0a 60%,#050f05 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;}
+#titleScreen h1{color:#88ff44;font-size:52px;letter-spacing:6px;text-shadow:0 0 30px #44ff00,0 0 60px #44ff0066;margin-bottom:8px;line-height:1.1;text-align:center;}
+#titleScreen h2{color:#aaffaa;font-size:12px;letter-spacing:2px;margin-bottom:8px;opacity:0.7;}
+#titleScreen p{color:#666;font-size:10px;margin-bottom:32px;}
+.char-select{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:90%;max-width:340px;}
+.char-card{background:rgba(255,255,255,0.04);border:2px solid rgba(100,200,60,0.3);border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;}
+.char-emoji{font-size:40px;margin-bottom:6px;}
+.char-name{color:#ffff88;font-size:15px;font-weight:bold;letter-spacing:1px;}
+.char-desc{color:#888;font-size:10px;margin-top:5px;line-height:1.5;}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;}
+#overlay h2{font-size:26px;margin-bottom:12px;letter-spacing:3px;}
+#overlay p{color:#aaa;font-size:13px;margin-bottom:8px;text-align:center;}
+.result-list{margin:10px 0 24px;}
+.result-row{color:#ddd;font-size:14px;margin:4px 0;}
+#overlay button{background:rgba(80,200,60,0.25);border:2px solid #88ff44;color:#88ff44;padding:12px 32px;font-size:15px;border-radius:8px;cursor:pointer;letter-spacing:2px;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="ui">
+  <div id="charName">- - -</div>
+  <div id="hpBar"><div id="hpFill" style="width:100%"></div><div id="hpText">体力 100/100</div></div>
+  <div id="altBar"><div id="altFill" style="width:0%"></div><div id="altText">標高 0m / 855m</div></div>
+</div>
+<div id="rankDisp"></div>
+<div id="message"></div>
+<div id="controls">
+  <div id="stickWrap"><div id="stickBase"></div><div id="stickKnob"></div></div>
+  <div class="action-btns">
+    <div class="action-btn" id="btnBoost">ダッシュ</div>
+    <div class="action-btn" id="btnRest">休憩</div>
+  </div>
+</div>
+<div id="titleScreen">
+  <h1>益荒男登山隊</h1>
+  <h2>〜 陣馬山 855m 登頂チャレンジ 〜</h2>
+  <p>キャラクターを選んでください</p>
+  <div class="char-select">
+    <div class="char-card" id="card-nakamura"><div class="char-emoji">🧔</div><div class="char-name">中邑</div><div class="char-desc">おしゃべり<br>うるさい</div></div>
+    <div class="char-card" id="card-kubo"><div class="char-emoji">🙍</div><div class="char-name">窪</div><div class="char-desc">下半身強靭<br>当たり最強💪</div></div>
+    <div class="char-card" id="card-kawasaki"><div class="char-emoji">😤</div><div class="char-name">川崎</div><div class="char-desc">無口・無尽蔵<br>スタミナ化け物</div></div>
+    <div class="char-card" id="card-milno"><div class="char-emoji">🎒</div><div class="char-name">ミルノ</div><div class="char-desc">超高速<br>🚀ミサイル装備</div></div>
+  </div>
+</div>
+<div id="overlay">
+  <h2 id="overlayTitle"></h2>
+  <p id="overlayMsg"></p>
+  <div class="result-list" id="resultList"></div>
+  <button id="btnRetry">もう一度</button>
+</div>
+<script>
+var MAX_ALT = 855;
+var CHARS = {
+  nakamura: {name:'中邑',emoji:'🧔',maxHP:100,speed:2.2,restPower:15,boostCost:20,color:'#88aaff',aggr:0.5,bumpR:34,bumpD:35,hpD:0.008,special:'talker',lines:['俺がいちばん！','うおおおお！','まだまだー！','行くぞ行くぞ！','余裕じゃん','待てー！','なんでやねん','ぬわーっ！']},
+  kubo:     {name:'窪',  emoji:'🙍',maxHP:150,speed:1.8,restPower:25,boostCost:15,color:'#88ffaa',aggr:0.6,bumpR:50,bumpD:60,hpD:0.006,special:'tank',lines:['どけぇ！','ふんっ','脚が違う']},
+  kawasaki: {name:'川崎',emoji:'😤',maxHP:200,speed:2.5,restPower:5, boostCost:18,color:'#ff8888',aggr:0.7,bumpR:34,bumpD:35,hpD:0.001,special:'silent',lines:['…','黙れ']},
+  milno:    {name:'ミルノ',emoji:'🎒',maxHP:90, speed:3.5,restPower:20,boostCost:15,color:'#ffdd88',aggr:0.8,bumpR:28,bumpD:25,hpD:0.010,special:'missile',lines:['ファイヤー！','Locked on!','やばいよ〜']}
+};
+var ALL_KEYS = ['nakamura','kubo','kawasaki','milno'];
+var OBSTACLES = ['🪨','🐗','💦','🐝','🌵'];
+var ITEMS = ['🍙','🍵','💪','⭐','🍬'];
+
+var game = null;
+var audioCtx = null;
+var bgmRunning = false;
+var bgmLoop = null;
+
+var canvas = document.getElementById(‘gameCanvas’);
+var ctx = canvas.getContext(‘2d’);
+
+function resize() {
+canvas.width = Math.min(430, window.innerWidth);
+canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener(‘resize’, resize);
+
+// カードのタップ
+function bindCard(id, key) {
+var el = document.getElementById(id);
+el.addEventListener(‘touchstart’, function(e) {
+e.preventDefault();
+startGame(key);
+}, {passive: false});
+el.addEventListener(‘click’, function() {
+startGame(key);
+});
+}
+bindCard(‘card-nakamura’, ‘nakamura’);
+bindCard(‘card-kubo’, ‘kubo’);
+bindCard(‘card-kawasaki’, ‘kawasaki’);
+bindCard(‘card-milno’, ‘milno’);
+
+document.getElementById(‘btnRetry’).addEventListener(‘click’, function() {
+location.reload();
+});
+
+// BGM
+function initAudio() {
+if (audioCtx) return;
+try {
+audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+} catch(e) {}
+}
+function playNote(freq, start, dur, vol, type) {
+if (!audioCtx) return;
+try {
+var o = audioCtx.createOscillator();
+var g = audioCtx.createGain();
+o.type = type || ‘square’;
+o.frequency.setValueAtTime(freq, start);
+g.gain.setValueAtTime(0, start);
+g.gain.linearRampToValueAtTime(vol, start + 0.01);
+g.gain.linearRampToValueAtTime(0, start + dur);
+o.connect(g); g.connect(audioCtx.destination);
+o.start(start); o.stop(start + dur + 0.01);
+} catch(e) {}
+}
+var BGM_T = 0.13;
+var MELODY = [[659,1],[659,1],[0,1],[659,1],[0,1],[523,1],[659,1],[0,1],[784,2],[0,2],[392,2],[0,2],[523,1],[0,2],[392,1],[0,2],[330,1],[0,2],[440,1],[0,1],[494,1],[0,1],[466,1],[440,1],[0,1],[392,1],[659,1],[784,1],[880,1],[0,1],[698,1],[784,1],[0,1],[659,1],[0,1],[523,1],[587,1],[494,1],[0,1]];
+var BASS = [[131,2],[0,2],[131,1],[0,1],[131,1],[0,1],[98,2],[0,2],[98,1],[0,1],[98,1],[0,1]];
+function scheduleBGM() {
+if (!audioCtx || !bgmRunning) return;
+var now = audioCtx.currentTime;
+var t = now;
+for (var i = 0; i < MELODY.length; i++) {
+if (MELODY[i][0] > 0) playNote(MELODY[i][0], t, MELODY[i][1]*BGM_T*0.85, 0.08, ‘square’);
+t += MELODY[i][1] * BGM_T;
+}
+var loopLen = 0;
+for (var i = 0; i < MELODY.length; i++) loopLen += MELODY[i][1];
+loopLen *= BGM_T;
+var tb = now;
+for (var r = 0; r < 4; r++) {
+for (var j = 0; j < BASS.length; j++) {
+if (BASS[j][0] > 0) playNote(BASS[j][0], tb, BASS[j][1]*BGM_T*0.7, 0.05, ‘sawtooth’);
+tb += BASS[j][1] * BGM_T;
+}
+}
+bgmLoop = setTimeout(scheduleBGM, loopLen * 1000 - 100);
+}
+function startBGM() { if (bgmRunning) return; bgmRunning = true; scheduleBGM(); }
+function stopBGM() { bgmRunning = false; if (bgmLoop) clearTimeout(bgmLoop); }
+function playSE(type) {
+if (!audioCtx) return;
+var now = audioCtx.currentTime;
+if (type === ‘hit’) { playNote(200,now,0.1,0.15,‘sawtooth’); }
+else if (type === ‘item’) { playNote(523,now,0.08,0.1,‘square’); playNote(784,now+0.08,0.1,0.1,‘square’); }
+else if (type === ‘bear’) { playNote(120,now,0.3,0.2,‘sawtooth’); }
+else if (type === ‘bump’) { playNote(300,now,0.05,0.2,‘square’); playNote(150,now+0.1,0.12,0.1,‘sawtooth’); }
+else if (type === ‘clear’) { playNote(523,now,0.15,0.12,‘square’); playNote(784,now+0.15,0.15,0.12,‘square’); playNote(1047,now+0.3,0.3,0.12,‘square’); }
+}
+
+// スティック
+var stickWrap = document.getElementById(‘stickWrap’);
+var stickKnob = document.getElementById(‘stickKnob’);
+var STICK_R = 38;
+var stickActive = false;
+var stickOrigin = {x:0, y:0};
+var stickVec = {x:0, y:0};
+
+function stickStart(cx, cy) {
+var rect = stickWrap.getBoundingClientRect();
+stickOrigin.x = rect.left + rect.width / 2;
+stickOrigin.y = rect.top + rect.height / 2;
+stickActive = true;
+stickMove(cx, cy);
+}
+function stickMove(cx, cy) {
+if (!stickActive) return;
+var dx = cx - stickOrigin.x;
+var dy = cy - stickOrigin.y;
+var dist = Math.sqrt(dx*dx + dy*dy);
+if (dist > STICK_R) { dx = dx/dist*STICK_R; dy = dy/dist*STICK_R; }
+stickVec.x = dx / STICK_R;
+stickVec.y = dy / STICK_R;
+stickKnob.style.transform = ’translate(calc(-50% + ’ + dx + ’px), calc(-50% + ’ + dy + ‘px))’;
+if (game) {
+var d = 0.2;
+game.stickX = stickVec.x;
+game.stickY = stickVec.y;
+game.keys.up    = stickVec.y < -d;
+game.keys.down  = stickVec.y >  d;
+game.keys.left  = stickVec.x < -d;
+game.keys.right = stickVec.x >  d;
+}
+}
+function stickEnd() {
+stickActive = false;
+stickVec.x = 0; stickVec.y = 0;
+stickKnob.style.transform = ‘translate(-50%, -50%)’;
+if (game) { game.keys = {}; game.stickX = 0; game.stickY = 0; }
+}
+stickWrap.addEventListener(‘touchstart’, function(e) { e.preventDefault(); stickStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+stickWrap.addEventListener(‘touchmove’,  function(e) { e.preventDefault(); stickMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+stickWrap.addEventListener(‘touchend’,   function(e) { e.preventDefault(); stickEnd(); }, {passive:false});
+stickWrap.addEventListener(‘mousedown’,  function(e) { stickStart(e.clientX, e.clientY); });
+window.addEventListener(‘mousemove’,     function(e) { stickMove(e.clientX, e.clientY); });
+window.addEventListener(‘mouseup’,       function()  { stickEnd(); });
+
+document.getElementById(‘btnRest’).addEventListener(‘touchstart’, function(e) { e.preventDefault(); doRest(); }, {passive:false});
+document.getElementById(‘btnBoost’).addEventListener(‘touchstart’, function(e) { e.preventDefault(); doBoost(); }, {passive:false});
+document.getElementById(‘btnRest’).addEventListener(‘click’, doRest);
+document.getElementById(‘btnBoost’).addEventListener(‘click’, doBoost);
+
+document.addEventListener(‘keydown’, function(e) {
+if (!game) return;
+if (e.key === ‘ArrowUp’)    game.keys.up = true;
+if (e.key === ‘ArrowDown’)  game.keys.down = true;
+if (e.key === ‘ArrowLeft’)  game.keys.left = true;
+if (e.key === ‘ArrowRight’) game.keys.right = true;
+if (e.key === ‘z’) doRest();
+if (e.key === ‘x’) doBoost();
+});
+document.addEventListener(‘keyup’, function(e) {
+if (!game) return;
+if (e.key === ‘ArrowUp’)    game.keys.up = false;
+if (e.key === ‘ArrowDown’)  game.keys.down = false;
+if (e.key === ‘ArrowLeft’)  game.keys.left = false;
+if (e.key === ‘ArrowRight’) game.keys.right = false;
+});
+
+function doRest() {
+if (!game || game.resting || game.gameOver) return;
+game.resting = true; game.restTimer = 80;
+showMsg(‘💤 休憩中…’);
+}
+function doBoost() {
+if (!game || game.boosting || game.gameOver) return;
+if (game.hp < game.char.boostCost + 5) { showMsg(‘体力が足りない！’); return; }
+game.hp -= game.char.boostCost;
+game.boosting = true; game.boostTimer = 90;
+showMsg(‘💨 ダッシュ！’); playSE(‘item’);
+}
+function showMsg(t) { if (game) { game.msgText = t; game.msgTimer = 130; } }
+
+function startGame(playerKey) {
+initAudio();
+document.getElementById(‘titleScreen’).style.display = ‘none’;
+var W = canvas.width, H = canvas.height;
+var pc = CHARS[playerKey];
+var PY = H * 0.6;
+var rivals = [];
+var rkeys = [];
+for (var i = 0; i < ALL_KEYS.length; i++) {
+if (ALL_KEYS[i] !== playerKey) rkeys.push(ALL_KEYS[i]);
+}
+var xpos = [W*0.2, W*0.5, W*0.8];
+for (var i = 0; i < rkeys.length; i++) {
+var c = CHARS[rkeys[i]];
+rivals.push({
+key: rkeys[i], char: c,
+hp: c.maxHP,
+x: xpos[i], y: PY + (Math.random()-0.5)*60,
+vx: 0, vy: 0,
+altOffset: 0,
+restTimer: 0, restCooldown: 0,
+boostTimer: 0,
+aiTimer: Math.random()*60,
+aiMode: ‘climb’,
+targetX: W*0.5, targetY: PY,
+bumpCooldown: 0, bumpAnim: 0,
+missileTimer: 80,
+talkTimer: 60, speechBubble: ‘’, speechTimer: 0,
+done: false, finishTime: null
+});
+}
+game = {
+playerKey: playerKey, char: pc,
+hp: pc.maxHP, alt: 0,
+x: W/2, y: PY,
+stickX: 0, stickY: 0,
+scrollY: 0, keys: {},
+resting: false, restTimer: 0,
+boosting: false, boostTimer: 0,
+msgText: ‘’, msgTimer: 0,
+gameOver: false, cleared: false,
+startTime: Date.now(), clearTime: null,
+talkerTimer: 60, missileTimer: 120,
+flashTimer: 0,
+speechBubble: ‘’, speechTimer: 0,
+rivals: rivals,
+objects: [], spawnTimer: 40,
+bears: [], bearTimer: 300,
+particles: [],
+missiles: [],
+bumpCooldown: 0,
+finishOrder: [], frame: 0
+};
+document.getElementById(‘charName’).textContent = pc.emoji + ’ ’ + pc.name;
+updateUI(); startBGM(); requestAnimationFrame(loop);
+}
+
+function spawnParticles(x, y, color, count) {
+if (!game) return;
+for (var i = 0; i < count; i++) {
+var a = (Math.PI*2/count)*i + Math.random()*0.5;
+var s = 4 + Math.random()*10;
+game.particles.push({x:x, y:y, vx:Math.cos(a)*s, vy:Math.sin(a)*s-4, color:color, life:40+Math.random()*30, maxLife:70, size:5+Math.random()*8});
+}
+}
+
+function spawnBear() {
+var W = canvas.width, H = canvas.height;
+var fromLeft = Math.random() < 0.5;
+var spd = 2.5 + Math.random()*2 + game.alt*0.003;
+game.bears.push({x: fromLeft ? -40 : W+40, y: H*(0.15+Math.random()*0.6), vx: fromLeft ? spd : -spd});
+}
+
+function updateRival(r, dt, g) {
+if (r.done) return;
+var W = canvas.width, H = canvas.height;
+var c = r.char;
+var PY = g.y;
+r.altOffset = -(r.y - PY) * 0.12;
+r.aiTimer -= dt;
+if (r.bumpCooldown > 0) r.bumpCooldown -= dt;
+if (r.boostTimer > 0) r.boostTimer -= dt;
+if (r.restTimer > 0) {
+r.restTimer -= dt;
+r.hp = Math.min(c.maxHP, r.hp + c.restPower*0.06*dt);
+r.vx *= 0.85; r.vy *= 0.85;
+r.x += r.vx*dt; r.y += r.vy*dt;
+return;
+}
+if (r.aiTimer <= 0) {
+var distP = Math.sqrt((r.x-g.x)*(r.x-g.x) + (r.y-PY)*(r.y-PY));
+var rand = Math.random();
+if (r.hp < c.maxHP*0.25 && r.restCooldown <= 0) {
+r.aiMode = ‘rest’; r.restTimer = 80; r.restCooldown = 200; r.aiTimer = 80;
+} else if (distP < 160 && rand < 0.5*c.aggr) {
+r.aiMode = ‘charge’;
+r.targetX = g.x + (Math.random()-0.5)*20;
+r.targetY = PY + (Math.random()-0.5)*20;
+r.aiTimer = 35 + Math.random()*25;
+} else if (rand < 0.25) {
+r.aiMode = ‘wander’;
+r.targetX = 50 + Math.random()*(W-100);
+r.targetY = r.y + (Math.random()-0.5)*100;
+r.aiTimer = 40 + Math.random()*70;
+} else {
+r.aiMode = ‘climb’;
+r.targetX = r.x + (Math.random()-0.5)*120;
+r.targetY = PY + (Math.random()-0.5)*80;
+r.aiTimer = 35 + Math.random()*55;
+}
+if (Math.random() < 0.07*c.aggr && r.hp > c.boostCost+10) {
+r.hp -= c.boostCost; r.boostTimer = 70;
+}
+}
+if (r.restCooldown > 0) r.restCooldown -= dt;
+
+var yDiff = r.y - PY;
+if (Math.abs(yDiff) > 100) r.vy -= yDiff * 0.04 * dt;
+
+var boostMul = r.boostTimer > 0 ? 2.2 : 1;
+var spd = c.speed * boostMul;
+var dx = r.targetX - r.x, dy = r.targetY - r.y;
+var dist = Math.sqrt(dx*dx + dy*dy);
+if (r.aiMode === ‘charge’) {
+if (dist > 5) { r.vx = dx/dist*spd*3; r.vy = dy/dist*spd*3; }
+} else {
+if (dist > 6) { r.vx = dx/dist*spd*1.5; r.vy = dy/dist*spd*1.5; }
+else { r.vx *= 0.8; r.vy *= 0.8; }
+}
+r.x += r.vx*dt; r.y += r.vy*dt;
+r.x = Math.max(25, Math.min(W-25, r.x));
+r.y = Math.max(PY-150, Math.min(PY+150, r.y));
+r.y = Math.max(H*0.04, Math.min(H*0.92, r.y));
+r.hp -= 0.008*dt;
+if (r.hp < 0) r.hp = 0;
+
+// 体当たり→プレイヤー
+if (r.bumpCooldown <= 0) {
+var pdx = r.x-g.x, pdy = r.y-PY;
+if (Math.sqrt(pdx*pdx+pdy*pdy) < 34) {
+g.hp = Math.max(0, g.hp-12);
+g.y += 60; g.alt = Math.max(0, g.alt-18);
+spawnParticles(g.x, g.y, ‘#ff8800’, 10);
+showMsg(‘😤 ’ + c.name + ’ に体当たり！’);
+playSE(‘bump’);
+r.bumpCooldown = 90;
+r.x -= pdx*0.6; r.y -= pdy*0.6;
+}
+}
+// ミルノAIミサイル
+if (c.special === ‘missile’) {
+r.missileTimer -= dt;
+if (r.missileTimer <= 0) {
+var mdx = g.x-r.x, mdy = g.y-r.y;
+var md = Math.sqrt(mdx*mdx+mdy*mdy);
+if (md > 0) g.missiles.push({x:r.x, y:r.y, vx:mdx/md*6, vy:mdy/md*6, targetPlayer:true, life:120});
+r.missileTimer = 100;
+}
+}
+// 中邑AIしゃべり
+if (c.special === ‘talker’) {
+r.talkTimer -= dt;
+if (r.talkTimer <= 0) {
+r.speechBubble = c.lines[Math.floor(Math.random()*c.lines.length)];
+r.speechTimer = 80;
+r.talkTimer = 60 + Math.random()*80;
+}
+if (r.speechTimer > 0) r.speechTimer -= dt;
+}
+// ライバル同士
+for (var i = 0; i < g.rivals.length; i++) {
+var other = g.rivals[i];
+if (other === r || other.done) continue;
+var odx = other.x-r.x, ody = other.y-r.y;
+var od = Math.sqrt(odx*odx+ody*ody);
+if (od < 32 && od > 0) {
+r.x -= odx/od*1.8; r.y -= ody/od*1.8;
+other.x += odx/od*1.8; other.y += ody/od*1.8;
+}
+}
+var realAlt = Math.max(0, Math.min(MAX_ALT, g.alt+r.altOffset));
+if (realAlt >= MAX_ALT && !r.done) {
+r.done = true; r.finishTime = Date.now();
+g.finishOrder.push({name:c.name, emoji:c.emoji, isPlayer:false, alt:MAX_ALT, time:r.finishTime});
+}
+}
+
+function updateUI() {
+if (!game) return;
+var hpP = Math.max(0, game.hp/game.char.maxHP*100);
+document.getElementById(‘hpFill’).style.width = hpP + ‘%’;
+document.getElementById(‘hpText’).textContent = ’体力 ’ + Math.ceil(game.hp) + ‘/’ + game.char.maxHP;
+document.getElementById(‘altFill’).style.width = (game.alt/MAX_ALT*100) + ‘%’;
+document.getElementById(‘altText’).textContent = ‘標高 ’ + Math.floor(game.alt) + ‘m / ’ + MAX_ALT + ‘m’;
+}
+function updateRank() {
+if (!game) return;
+var all = [{name:game.char.name, emoji:game.char.emoji, alt:game.alt, isPlayer:true}];
+for (var i = 0; i < game.rivals.length; i++) {
+var r = game.rivals[i];
+all.push({name:r.char.name, emoji:r.char.emoji, alt:Math.max(0, game.alt+r.altOffset), isPlayer:false});
+}
+all.sort(function(a,b){ return b.alt-a.alt; });
+var html = ‘’;
+for (var i = 0; i < all.length; i++) {
+var cls = all[i].isPlayer ? ‘rank-you’ : ‘’;
+html += ‘<div class="rank-row"><span class="rank-num">’+(i+1)+’</span><span class="'+cls+'">’+all[i].emoji+all[i].name+’</span></div>’;
+}
+document.getElementById(‘rankDisp’).innerHTML = html;
+}
+
+var lastTime = 0;
+function loop(ts) {
+if (!game) return;
+var dt = Math.min((ts - lastTime)/16.67, 3);
+lastTime = ts;
+game.frame++;
+update(dt); draw();
+if (!game.gameOver && !game.cleared) requestAnimationFrame(loop);
+}
+
+function update(dt) {
+var g = game;
+if (g.gameOver || g.cleared) return;
+for (var ri = 0; ri < g.rivals.length; ri++) updateRival(g.rivals[ri], dt, g);
+if (g.resting) {
+g.restTimer -= dt;
+g.hp = Math.min(g.char.maxHP, g.hp + g.char.restPower*0.06*dt);
+if (g.restTimer <= 0) { g.resting = false; showMsg(‘回復した！’); }
+updateUI(); updateRank(); return;
+}
+var sx = g.stickX||0, sy = g.stickY||0, dead = 0.18;
+var upStr   = sy < -dead ? Math.min(1, (-sy-dead)/(1-dead)) : 0;
+var downStr = sy >  dead ? Math.min(1, (sy-dead)/(1-dead))  : 0;
+var lrStr   = Math.abs(sx) > dead ? (sx>0?1:-1)*Math.min(1,(Math.abs(sx)-dead)/(1-dead)) : 0;
+var spd = g.boosting ? g.char.speed*3.0 : g.char.speed;
+if (g.boosting) { g.boostTimer -= dt; if (g.boostTimer <= 0) g.boosting = false; }
+var W = canvas.width, H = canvas.height;
+g.x += lrStr*spd*1.5*dt;
+g.y += (-upStr+downStr*0.5)*spd*dt;
+if (upStr > 0) {
+var altRate = g.boosting ? 0.35 : 0.18;
+g.alt += spd*upStr*altRate*dt;
+g.alt = Math.min(MAX_ALT, g.alt);
+g.scrollY += spd*upStr*dt;
+g.hp -= 0.04*upStr*dt*(g.boosting?1.5:1);
+} else {
+g.alt += 0.03*dt;
+g.scrollY += 0.3*dt;
+g.alt = Math.min(MAX_ALT, g.alt);
+}
+if (downStr > 0) g.alt = Math.max(0, g.alt - spd*downStr*0.08*dt);
+g.x = Math.max(20, Math.min(W-20, g.x));
+g.y = Math.max(H*0.1, Math.min(H*0.88, g.y));
+g.hp -= g.char.hpD*dt;
+// 障害物
+g.spawnTimer -= dt;
+if (g.spawnTimer <= 0) {
+var isItem = Math.random() < 0.25;
+var emj = isItem ? ITEMS[Math.floor(Math.random()*ITEMS.length)] : OBSTACLES[Math.floor(Math.random()*OBSTACLES.length)];
+g.objects.push({x:30+Math.random()*(W-60), y:-50, emoji:emj, isItem:isItem});
+g.spawnTimer = 35 + Math.random()*55;
+}
+var sd = upStr > 0 ? spd*upStr*dt : 0.4*dt;
+for (var i = g.objects.length-1; i >= 0; i–) {
+var o = g.objects[i]; o.y += sd;
+var dx = o.x-g.x, dy = o.y-g.y;
+if (Math.sqrt(dx*dx+dy*dy) < 22) {
+if (o.isItem) { g.hp = Math.min(g.char.maxHP, g.hp+22); showMsg(‘🎉 アイテム！’); playSE(‘item’); }
+else { g.hp -= 14; showMsg(‘😱 ‘+o.emoji+’！’); playSE(‘hit’); }
+g.objects.splice(i,1); continue;
+}
+if (o.y > H+60) g.objects.splice(i,1);
+}
+// 熊
+if (g.alt > 200) {
+g.bearTimer -= dt;
+if (g.bearTimer <= 0) { spawnBear(); g.bearTimer = Math.max(80, 220-g.alt*0.15)+Math.random()*100; }
+}
+var sdb = upStr > 0 ? spd*upStr*dt : 0.4*dt;
+for (var i = g.bears.length-1; i >= 0; i–) {
+var b = g.bears[i]; b.x += b.vx*dt; b.y += sdb;
+var dx = b.x-g.x, dy = b.y-g.y;
+if (Math.sqrt(dx*dx+dy*dy) < 32) {
+g.hp -= 30; g.alt = Math.max(0, g.alt-25);
+spawnParticles(g.x, g.y, ‘#ff4400’, 12);
+showMsg(‘🐻💥 クマに吹っ飛ばされた！’); playSE(‘bear’);
+g.bears.splice(i,1); continue;
+}
+if (b.x < -80 || b.x > W+80 || b.y > H+80) g.bears.splice(i,1);
+}
+// 体当たり→ライバル
+if (g.bumpCooldown > 0) g.bumpCooldown -= dt;
+if (g.bumpCooldown <= 0) {
+for (var i = 0; i < g.rivals.length; i++) {
+var r = g.rivals[i]; if (r.done) continue;
+var dx = r.x-g.x, dy = r.y-g.y;
+if (Math.sqrt(dx*dx+dy*dy) < g.char.bumpR) {
+r.y += g.char.bumpD*1.5; r.vx = (dx>0?1:-1)*8; r.vy = 5;
+r.bumpAnim = 40;
+spawnParticles(r.x, r.y, r.char.color, g.char.special===‘tank’?24:16);
+showMsg(‘👊💥 ‘+r.char.name+’ を吹っ飛ばした！’);
+playSE(‘bump’); g.bumpCooldown = 45; break;
+}
+}
+}
+// 中邑しゃべり
+if (g.char.special === ‘talker’) {
+g.talkerTimer -= dt;
+if (g.talkerTimer <= 0) {
+g.speechBubble = g.char.lines[Math.floor(Math.random()*g.char.lines.length)];
+g.speechTimer = 90;
+g.talkerTimer = 60 + Math.random()*80;
+}
+if (g.speechTimer > 0) g.speechTimer -= dt;
+}
+// ミルノミサイル発射
+if (g.char.special === ‘missile’) {
+g.missileTimer -= dt;
+if (g.missileTimer <= 0) {
+var target = null, minY = 9999;
+for (var i = 0; i < g.rivals.length; i++) {
+if (!g.rivals[i].done && g.rivals[i].y < minY) { minY = g.rivals[i].y; target = g.rivals[i]; }
+}
+if (target) {
+var mdx = target.x-g.x, mdy = target.y-g.y;
+var md = Math.sqrt(mdx*mdx+mdy*mdy);
+if (md > 0) g.missiles.push({x:g.x, y:g.y, vx:mdx/md*6, vy:mdy/md*6, target:target, targetPlayer:false, life:120});
+}
+g.missileTimer = 90;
+}
+}
+// ミサイル更新
+if (g.flashTimer > 0) g.flashTimer -= dt;
+for (var i = g.missiles.length-1; i >= 0; i–) {
+var m = g.missiles[i];
+if (m.target && !m.target.done) {
+var mdx = m.target.x-m.x, mdy = m.target.y-m.y;
+var md = Math.sqrt(mdx*mdx+mdy*mdy);
+if (md > 0) { m.vx += (mdx/md*7-m.vx)*0.08; m.vy += (mdy/md*7-m.vy)*0.08; }
+}
+if (m.targetPlayer) {
+var mdx = g.x-m.x, mdy = g.y-m.y;
+var md = Math.sqrt(mdx*mdx+mdy*mdy);
+if (md > 0) { m.vx += (mdx/md*7-m.vx)*0.08; m.vy += (mdy/md*7-m.vy)*0.08; }
+if (md < 30) {
+g.hp = Math.max(0, g.hp-25); g.alt = Math.max(0, g.alt-20);
+spawnParticles(g.x,g.y,’#ff4400’,80); spawnParticles(g.x,g.y,’#ffff00’,60);
+g.flashTimer = 18;
+showMsg(‘🚀💥 ミサイル被弾！’); playSE(‘bear’);
+g.missiles.splice(i,1); continue;
+}
+}
+if (m.target) {
+var hdx = m.x-m.target.x, hdy = m.y-m.target.y;
+if (Math.sqrt(hdx*hdx+hdy*hdy) < 30) {
+m.target.y += 60; m.target.bumpAnim = 40;
+m.target.hp = Math.max(0, m.target.hp-25);
+spawnParticles(m.target.x,m.target.y,’#ff8800’,80);
+spawnParticles(m.target.x,m.target.y,’#ffff00’,60);
+spawnParticles(m.target.x,m.target.y,’#ffffff’,40);
+g.flashTimer = 18;
+showMsg(‘🚀💥💥💥 大爆発！’+m.target.char.name);
+playSE(‘bump’); playSE(‘bear’);
+g.missiles.splice(i,1); continue;
+}
+}
+m.x += m.vx*dt; m.y += m.vy*dt; m.life -= dt;
+if (m.life <= 0) g.missiles.splice(i,1);
+}
+// パーティクル
+for (var i = g.particles.length-1; i >= 0; i–) {
+var p = g.particles[i];
+p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 0.3*dt; p.life -= dt;
+if (p.life <= 0) g.particles.splice(i,1);
+}
+if (g.msgTimer > 0) g.msgTimer -= dt;
+updateUI(); updateRank();
+if (g.hp <= 0) {
+g.hp = 0; g.gameOver = true; stopBGM();
+showOverlay(‘力尽きた…’, g.char.emoji+g.char.name+’ は倒れた’, buildRank());
+}
+if (g.alt >= MAX_ALT) {
+g.cleared = true; g.clearTime = Date.now(); stopBGM(); playSE(‘clear’);
+g.finishOrder.unshift({name:g.char.name, emoji:g.char.emoji, isPlayer:true, alt:MAX_ALT, time:g.clearTime});
+showOverlay(‘登頂成功！！’, ‘🏔️ 陣馬山 855m 制覇！’, buildRank());
+}
+var allDone = true;
+for (var i = 0; i < g.rivals.length; i++) { if (!g.rivals[i].done) { allDone = false; break; } }
+if (!g.cleared && !g.gameOver && allDone) {
+g.gameOver = true; stopBGM();
+var found = false;
+for (var i = 0; i < g.finishOrder.length; i++) { if (g.finishOrder[i].isPlayer) { found = true; break; } }
+if (!found) g.finishOrder.push({name:g.char.name, emoji:g.char.emoji, isPlayer:true, alt:g.alt, time:null});
+showOverlay(‘完走！’, ‘全員ゴール！’, buildRank());
+}
+}
+
+function fmtTime(ms) {
+var s = Math.floor(ms/1000);
+return Math.floor(s/60) + ‘分’ + (s%60) + ‘秒’;
+}
+function buildRank() {
+var all = [{name:game.char.name, emoji:game.char.emoji, alt:game.alt, isPlayer:true, time:game.clearTime}];
+for (var i = 0; i < game.rivals.length; i++) {
+var r = game.rivals[i];
+all.push({name:r.char.name, emoji:r.char.emoji, alt:Math.max(0,game.alt+r.altOffset), isPlayer:false, time:r.finishTime});
+}
+all.sort(function(a,b) {
+if (a.time && b.time) return a.time - b.time;
+if (a.time) return -1;
+if (b.time) return 1;
+return b.alt - a.alt;
+});
+return all;
+}
+function showOverlay(title, msg, rank) {
+document.getElementById(‘overlayTitle’).textContent = title;
+document.getElementById(‘overlayTitle’).style.color = (title.indexOf(‘成功’)>=0||title.indexOf(‘完走’)>=0) ? ‘#88ff44’ : ‘#ff6644’;
+document.getElementById(‘overlayMsg’).textContent = msg;
+var medals = [‘🥇’,‘🥈’,‘🥉’,‘4️⃣’];
+var html = ‘’;
+for (var i = 0; i < rank.length; i++) {
+var c = rank[i];
+var tstr = c.time ? fmtTime(c.time - game.startTime) : ‘–未着–’;
+html += ‘<div class="result-row">’+(medals[i]||’’)+’ ‘+c.emoji+c.name+’ ‘+tstr+(c.isPlayer?’ ← あなた’:’’)+’</div>’;
+}
+document.getElementById(‘resultList’).innerHTML = html;
+document.getElementById(‘overlay’).style.display = ‘flex’;
+}
+
+// DRAW
+function getBgColor(alt) {
+var t = alt/MAX_ALT;
+if (t < 0.3) return ‘rgb(’+Math.floor(20+t*50)+’,’+Math.floor(50+t*70)+’,’+Math.floor(15+t*20)+’)’;
+if (t < 0.7) return ‘rgb(’+Math.floor(65+t*30)+’,’+Math.floor(85+t*30)+’,’+Math.floor(45+t*20)+’)’;
+return ‘rgb(’+Math.floor(95+t*40)+’,’+Math.floor(100+t*40)+’,’+Math.floor(80+t*50)+’)’;
+}
+var TREES = [];
+for (var ti = 0; ti < 30; ti++) {
+var ts = ti*173.1;
+TREES.push({side:ti%2, ox:ts%50, oy:(ts*2.3)%1000, emoji:[‘🌲’,‘🌳’,‘🍀’,‘🌿’,‘🪨’,‘🌾’][ti%6]});
+}
+function drawBg(scrollY) {
+var W = canvas.width, H = canvas.height;
+ctx.font = ‘22px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+for (var i = 0; i < TREES.length; i++) {
+var t = TREES[i];
+var x = t.side === 0 ? 12+t.ox*0.6 : W-12-t.ox*0.6;
+var y = ((t.oy - (scrollY*0.4)%1000) % H + H) % H;
+ctx.fillText(t.emoji, x, y);
+}
+}
+function draw() {
+var g = game;
+var W = canvas.width, H = canvas.height;
+ctx.fillStyle = getBgColor(g.alt); ctx.fillRect(0,0,W,H);
+if (g.flashTimer > 0) {
+ctx.save(); ctx.globalAlpha = (g.flashTimer/18)*0.85;
+ctx.fillStyle = ‘#ffffff’; ctx.fillRect(0,0,W,H);
+ctx.restore();
+}
+drawBg(g.scrollY);
+ctx.strokeStyle = ‘rgba(180,160,120,0.25)’; ctx.lineWidth = 50;
+ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+ctx.font = ‘28px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+for (var i = 0; i < g.objects.length; i++) ctx.fillText(g.objects[i].emoji, g.objects[i].x, g.objects[i].y);
+for (var i = 0; i < g.bears.length; i++) {
+var b = g.bears[i];
+ctx.save(); ctx.font = ‘36px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+if (b.vx < 0) { ctx.scale(-1,1); ctx.fillText(‘🐻’,-b.x,b.y); }
+else ctx.fillText(‘🐻’,b.x,b.y);
+ctx.restore();
+}
+// ライバル
+for (var i = 0; i < g.rivals.length; i++) {
+var r = g.rivals[i];
+ctx.save();
+if (r.bumpAnim > 0) {
+r.bumpAnim–;
+var shake = Math.sin(r.bumpAnim*1.2)*12*(r.bumpAnim/40);
+ctx.translate(r.x+shake, r.y-(40-r.bumpAnim)*1.5);
+ctx.rotate(shake*0.08);
+} else {
+ctx.translate(r.x, r.y);
+}
+ctx.font = ‘36px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+ctx.fillText(r.char.emoji, 0, 0);
+ctx.font = ‘bold 13px monospace’;
+ctx.fillStyle = ‘rgba(0,0,0,0.7)’; ctx.fillText(r.char.name, 1, 27);
+ctx.fillStyle = r.char.color; ctx.fillText(r.char.name, 0, 26);
+ctx.font = ‘14px serif’; ctx.fillStyle = ‘#fff’;
+if (r.restTimer > 0) ctx.fillText(‘💤’, 22, -16);
+if (r.boostTimer > 0) ctx.fillText(‘💨’, -22, 4);
+if (r.aiMode === ‘charge’) ctx.fillText(‘👊’, 20, 4);
+ctx.restore();
+if (r.char.special === ‘talker’ && r.speechBubble && r.speechTimer > 0) {
+ctx.font = ‘bold 12px monospace’;
+var bw = ctx.measureText(r.speechBubble).width + 14;
+ctx.fillStyle = ‘rgba(0,0,0,0.75)’;
+ctx.fillRect(r.x-bw/2, r.y-68, bw, 20);
+ctx.fillStyle = ‘#ffffff’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+ctx.fillText(r.speechBubble, r.x, r.y-58);
+}
+}
+// ミサイル
+ctx.font = ‘18px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+for (var i = 0; i < g.missiles.length; i++) {
+var m = g.missiles[i];
+ctx.save();
+ctx.translate(m.x, m.y);
+ctx.rotate(Math.atan2(m.vy, m.vx));
+ctx.fillText(‘🚀’, 0, 0);
+ctx.restore();
+}
+// プレイヤー
+ctx.font = ‘42px serif’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+ctx.fillText(g.char.emoji, g.x, g.y);
+ctx.font = ‘bold 13px monospace’;
+ctx.fillStyle = ‘rgba(0,0,0,0.7)’; ctx.fillText(g.char.name, g.x+1, g.y+31);
+ctx.fillStyle = g.char.color; ctx.fillText(g.char.name, g.x, g.y+30);
+ctx.fillStyle = ‘#fff’;
+if (g.boosting) { ctx.font = ‘16px serif’; ctx.fillText(‘💨’, g.x-24, g.y+4); }
+if (g.resting)  { ctx.font = ‘16px serif’; ctx.fillText(‘💤’, g.x+22, g.y-18); }
+if (g.char.special === ‘missile’) { ctx.font = ‘14px serif’; ctx.fillText(‘🚀’, g.x+22, g.y-18); }
+if (g.char.special === ‘talker’ && g.speechBubble && g.speechTimer > 0) {
+ctx.font = ‘bold 12px monospace’;
+var bw = ctx.measureText(g.speechBubble).width + 14;
+ctx.fillStyle = ‘rgba(0,0,0,0.75)’;
+ctx.fillRect(g.x-bw/2, g.y-68, bw, 20);
+ctx.fillStyle = ‘#ffff88’; ctx.textAlign = ‘center’; ctx.textBaseline = ‘middle’;
+ctx.fillText(g.speechBubble, g.x, g.y-58);
+}
+// パーティクル
+for (var i = 0; i < g.particles.length; i++) {
+var p = g.particles[i];
+var a = p.life/p.maxLife;
+ctx.save(); ctx.globalAlpha = a;
+ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size*a, 0, Math.PI*2); ctx.fill();
+ctx.fillStyle = ‘#fff’; ctx.beginPath(); ctx.arc(p.x, p.y, p.size*a*0.4, 0, Math.PI*2); ctx.fill();
+ctx.restore();
+}
+// スケール
+var aP = 1-g.alt/MAX_ALT, mY = aP*(H-60)+30;
+ctx.fillStyle = ‘rgba(255,255,255,0.12)’; ctx.fillRect(W-14,30,6,H-60);
+ctx.fillStyle = ‘#88ff44’; ctx.fillRect(W-15,mY-5,8,10);
+for (var i = 0; i < g.rivals.length; i++) {
+var rAlt = Math.max(0, Math.min(MAX_ALT, g.alt+g.rivals[i].altOffset));
+var rP = 1-rAlt/MAX_ALT, ryM = rP*(H-60)+30;
+ctx.fillStyle = g.rivals[i].char.color; ctx.fillRect(W-13,ryM-2,4,4);
+}
+var msgEl = document.getElementById(‘message’);
+if (g.msgTimer > 0) { msgEl.style.opacity = Math.min(1, g.msgTimer/30); msgEl.textContent = g.msgText; }
+else msgEl.style.opacity = 0;
+}
+</script>
+
+</body>
+</html>
